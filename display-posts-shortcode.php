@@ -82,6 +82,7 @@ function be_display_posts_shortcode( $atts ) {
 		'tax_include_children' => true,
 		'tax_term'             => false,
 		'taxonomy'             => false,
+		'template'             => '',
 		'time'                 => '',
 		'title'                => '',
 		'wrapper'              => 'ul',
@@ -137,6 +138,7 @@ function be_display_posts_shortcode( $atts ) {
 	$tax_include_children = filter_var( $atts['tax_include_children'], FILTER_VALIDATE_BOOLEAN );
 	$tax_term             = sanitize_text_field( $atts['tax_term'] );
 	$taxonomy             = sanitize_key( $atts['taxonomy'] );
+	$template             = sanitize_text_field( $atts['template'] );
 	$time                 = sanitize_text_field( $atts['time'] );
 	$shortcode_title      = sanitize_text_field( $atts['title'] );
 	$wrapper              = sanitize_text_field( $atts['wrapper'] );
@@ -375,10 +377,11 @@ function be_display_posts_shortcode( $atts ) {
 
 	// Set up html elements used to wrap the posts.
 	// Default is ul/li, but can also be ol/li and div/div
-	$wrapper_options = array( 'ul', 'ol', 'div' );
+	$wrapper_options = array( 'ul', 'ol', 'div', '' );
 	if( ! in_array( $wrapper, $wrapper_options ) )
 		$wrapper = 'ul';
 	$inner_wrapper = 'div' == $wrapper ? 'div' : 'li';
+	if (empty($wrapper)) $inner_wrapper = '';
 
 	/**
 	 * Filter the arguments passed to WP_Query.
@@ -404,6 +407,15 @@ function be_display_posts_shortcode( $atts ) {
 	while ( $listing->have_posts() ): $listing->the_post(); global $post;
 
 		$image = $date = $author = $excerpt = $content = '';
+	
+		if ($template)
+		{
+			$template =  str_replace( '%TITLE%', get_the_title(), $template);
+    			$template =  str_replace( '%LINK%', get_permalink( $ID ), $template);
+    			$content = apply_filters('the_content', get_the_content() );
+    			$output =  str_replace( '%EXCERPT%',  wp_trim_words( $content, $num_words = 50, $more = '...' ), $template);
+			continue;
+		}
 
 		if ( $include_title && $include_link ) {
 			/** This filter is documented in wp-includes/link-template.php */
@@ -508,7 +520,16 @@ function be_display_posts_shortcode( $atts ) {
 		 * @param array    $original_atts Original attributes passed to the shortcode.
 		 */
 		$class = array_map( 'sanitize_html_class', apply_filters( 'display_posts_shortcode_post_class', $class, $post, $listing, $original_atts ) );
-		$output = '<' . $inner_wrapper . ' class="' . implode( ' ', $class ) . '">' . $image . $title . $date . $author . $category_display_text . $excerpt . $content . '</' . $inner_wrapper . '>';
+		
+		if (!empty($inner_wrapper))
+		{
+			$output = '<' . $inner_wrapper . ' class="' . implode( ' ', $class ) . '">' . $image . $title . $date . $author . $category_display_text . $excerpt . $content . '</' . $inner_wrapper . '>';
+		}
+		else
+		{
+			$output = $image . $title . $date . $author . $category_display_text . $excerpt . $content;
+		}
+		
 
 		/**
 		 * Filter the HTML markup for output via the shortcode.
@@ -539,7 +560,14 @@ function be_display_posts_shortcode( $atts ) {
 	 * @param string $wrapper_open  HTML markup for the opening outer wrapper element.
 	 * @param array  $original_atts Original attributes passed to the shortcode.
 	 */
-	$open = apply_filters( 'display_posts_shortcode_wrapper_open', '<' . $wrapper . $wrapper_class . $wrapper_id . '>', $original_atts );
+	if (!empty($wrapper))
+	{
+		$open = apply_filters( 'display_posts_shortcode_wrapper_open', '<' . $wrapper . $wrapper_class . $wrapper_id . '>', $original_atts );
+	}
+	else
+	{
+		$open = apply_filters( 'display_posts_shortcode_wrapper_open', '', $original_atts );
+	}
 
 	/**
 	 * Filter the shortcode output's closing outer wrapper element.
@@ -549,7 +577,14 @@ function be_display_posts_shortcode( $atts ) {
 	 * @param string $wrapper_close HTML markup for the closing outer wrapper element.
 	 * @param array  $original_atts Original attributes passed to the shortcode.
 	 */
-	$close = apply_filters( 'display_posts_shortcode_wrapper_close', '</' . $wrapper . '>', $original_atts );
+	if (!empty($wrapper))
+	{
+		$close = apply_filters( 'display_posts_shortcode_wrapper_close', '</' . $wrapper . '>', $original_atts );
+	}
+	else
+	{
+		$close = apply_filters( 'display_posts_shortcode_wrapper_close', '', $original_atts );
+	}
 
 	$return = '';
 
