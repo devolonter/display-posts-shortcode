@@ -413,7 +413,7 @@ function be_display_posts_shortcode( $atts ) {
 			$template =  str_replace( '%TITLE%', get_the_title(), $template);
     			$template =  str_replace( '%LINK%', get_permalink( $ID ), $template);
     			$content = apply_filters('the_content', get_the_content() );
-    			$output =  str_replace( '%EXCERPT%',  wp_trim_words( $content, $num_words = 50, $more = '...' ), $template);
+    			$inner .= str_replace( '%EXCERPT%',  wp_trim_words( $content, $num_words = 50, $more = '...' ), $template);
 			continue;
 		}
 
